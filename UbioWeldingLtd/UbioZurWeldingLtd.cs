@@ -336,7 +336,12 @@ namespace UbioWeldingLtd
 			_welder = new Welder(_config.advancedDebug);
 
 			partToWeld.transform.eulerAngles = Vector3.zero;
-			WeldingReturn ret = _welder.weldThisPart(partToWeld);
+			WeldingReturn ret = 0;
+
+			if (!WeldingHelpers.DoesTextContainRegex(partToWeld.name, "strutConnector"))
+			{
+				ret = _welder.weldThisPart(partToWeld);
+			}
 
 			if (ret < 0)
 			{
@@ -357,7 +362,10 @@ namespace UbioWeldingLtd
 			{
 				foreach (Part child in children)
 				{
-					ret = _welder.weldThisPart(child);
+					if (!WeldingHelpers.DoesTextContainRegex(child.name, "strutConnector"))
+					{
+						ret = _welder.weldThisPart(child);
+					}
 
 					if (ret< 0)
 					{
@@ -381,7 +389,6 @@ namespace UbioWeldingLtd
 			_scrollRes = Vector2.zero;
 #if (DEBUG)
 			Debug.Log(string.Format("{0} {1} | {2} Parts welded", Constants.logPrefix, Constants.logEndWeld, _welder.NbParts));
-
 #endif
 			if (warning)
 			{

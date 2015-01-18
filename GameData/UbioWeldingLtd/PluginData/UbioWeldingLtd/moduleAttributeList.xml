@@ -30,6 +30,8 @@
     <ModuleAttribute AttributeName="KASModuleGrab" />
     <ModuleAttribute AttributeName="ModuleTweakableRCS" />
     <ModuleAttribute AttributeName="ModuleTweakableSolarPanel" />
+    <ModuleAttribute AttributeName="CModuleStrut" />
+    <ModuleAttribute AttributeName="CModuleLinkedMesh" />
   </ModulesToIgnore>
   <ModulesToMultiply>
     <ModuleAttribute AttributeName="AntimatterCollector" />

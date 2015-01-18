@@ -219,5 +219,38 @@ namespace UbioWeldingLtd
 		{
 			return (float)Math.Round(inValue, Constants.weldNumberOfFractionalDigits);
 		}
+
+
+		/// <summary>
+		/// checks if a wanted text is inside a string
+		/// </summary>
+		/// <param name="text"></param>
+		/// <param name="searchText"></param>
+		/// <returns></returns>
+		public static bool DoesTextContainRegex(string text, string searchText)
+		{
+			if (new Regex(searchText).IsMatch(text))
+			{
+				return true;
+			}
+			return false;
+		}
+
+
+		/// <summary>
+		/// shortens a given string by the length of a searched text, in case that it is contained inside the given text
+		/// </summary>
+		/// <param name="text"></param>
+		/// <param name="textToRemove"></param>
+		public static void removeTextRegex(ref string text, string textToRemove)
+		{
+			while (new Regex(textToRemove).IsMatch(text))
+			{
+				text = text.Replace(textToRemove, "");
+				//text = text.Substring(0, text.Length - textToRemove.Length);
+			}
+		}
+
+
 	}
 }

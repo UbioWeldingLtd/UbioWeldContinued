@@ -49,7 +49,7 @@ namespace UbioWeldingLtd
 		MissingModel = -2
 	}
 
-	class Welder
+	class Welder : ModuleMerger
 	{
 		private int _partNumber = 0;
 		private string _name = Constants.weldDefaultName;
@@ -229,17 +229,6 @@ namespace UbioWeldingLtd
 			_advancedDebug = advancedDebug;
         }
 
-		/*
-		 * Remove all the (Clone) at the end of the names
-		 */
-		private void removecClone(ref string name)
-		{
-			const string clone = "(Clone)";
-			while (new Regex(clone).IsMatch(name))
-			{
-				name = name.Substring(0, name.Length - clone.Length);
-			}
-		} //private void removecClone(ref string name)
 
 		/*
 		 * Set relative position
@@ -248,6 +237,7 @@ namespace UbioWeldingLtd
 		{
 			position += part.transform.position - part.localRoot.transform.position;
 		} //private void setRelativePosition(Part part, ref Vector3 position)
+
 
 		/*
 		 * Set relative rotation
@@ -266,6 +256,7 @@ namespace UbioWeldingLtd
 			else if (0 > rotation.y) rotation.y += 360.0f;
 		} //private void setRelativeRotation(Part part, ref Vector3 rotation)
 
+
 		/*
 		 * Process the new center of mass to the models and node
 		 */
@@ -281,73 +272,6 @@ namespace UbioWeldingLtd
 			}
 		}
 
-		/*
-		 * Merge Curve Vector 2
-		 */
-		private static Vector2[] MergeAtmCurve(string[] set1, string[] set2)
-		{
-			Vector2[] curvevect = new Vector2[(set1.Length >= set2.Length) ? set1.Length : set2.Length];
-			for (int i = 0; i < curvevect.Length; ++i)
-			{
-				curvevect[i] = ConfigNode.ParseVector2(set2[i]);
-			}
-			for (int i = 0; i < set1.Length; ++i)
-			{
-				Vector2 vect = ConfigNode.ParseVector2(set1[i]);
-				int j = 0;
-				while (vect.x != curvevect[j].x && j < curvevect.Length && j < set2.Length)
-				{
-					++j;
-				}
-				if (j >= curvevect.Length)
-				{
-					//didn't find it, should add more
-				}
-				else if (j >= set2.Length)
-				{
-					curvevect[j] = vect;
-				}
-				else
-				{
-					curvevect[j].y = (curvevect[j].y + vect.y) * 0.5f;
-				}
-			}
-			return curvevect;
-		}
-
-		/*
-		 * Merge Curve Vector 4
-		 */
-		private static Vector4[] MergeVelCurve(string[] set1, string[] set2)
-		{
-			Vector4[] curvevect = new Vector4[(set1.Length >= set2.Length) ? set1.Length : set2.Length];
-			for (int i = 0; i < curvevect.Length; ++i)
-			{
-				curvevect[i] = ConfigNode.ParseVector4(set2[i]);
-			}
-			for (int i = 0; i < set1.Length; ++i)
-			{
-				Vector4 vect = ConfigNode.ParseVector4(set1[i]);
-				int j = 0;
-				while (vect.x != curvevect[j].x && j < curvevect.Length && j < set2.Length)
-				{
-					++j;
-				}
-				if (j >= curvevect.Length)
-				{
-					//didn't find it, should add more
-				}
-				else if (j >= set2.Length)
-				{
-					curvevect[j] = vect;
-				}
-				else
-				{
-					curvevect[j].y = (curvevect[j].y + vect.y) * 0.5f;
-				}
-			}
-			return curvevect;
-		}
 
 		/*
 		 * Get the mesh name
@@ -373,33 +297,29 @@ namespace UbioWeldingLtd
 				string[] files = Directory.GetFiles(cfgdir.parent.parent.path, "*.mu");
 				if (files.Length != 0)
 				{
-					AdvDebug(string.Format("..cfgdir.parent.parent.path {0}", cfgdir.parent.parent.path));
-					AdvDebug(string.Format("..files[0] {0}", files[0]));
-					AdvDebug(string.Format("..cfgdir.parent.parent.path.Length {0}", cfgdir.parent.parent.path.Length));
+					Debugger.AdvDebug(string.Format("..cfgdir.parent.parent.path {0}", cfgdir.parent.parent.path), _advancedDebug);
+					Debugger.AdvDebug(string.Format("..files[0] {0}", files[0]), _advancedDebug);
+					Debugger.AdvDebug(string.Format("..cfgdir.parent.parent.path.Length {0}", cfgdir.parent.parent.path.Length), _advancedDebug);
 					files[0] = files[0].Remove(0, cfgdir.parent.parent.path.Length);
 
-					AdvDebug(string.Format("{0}.New mesh name: {1}", Constants.logPrefix, files[0]));
+					Debugger.AdvDebug(string.Format("{0}.New mesh name: {1}", Constants.logPrefix, files[0]), _advancedDebug);
 
 					char[] sep = { '\\','.', '/' };
 					string[] words = files[0].Split(sep);
 
-					AdvDebug(string.Format("..words[1] {0}", words[1]));
-					AdvDebug(string.Format("..mesh {0}", mesh));
+					Debugger.AdvDebug(string.Format("..words[1] {0}", words[1]), _advancedDebug);
+					Debugger.AdvDebug(string.Format("..mesh {0}", mesh), _advancedDebug);
 
 //					url = url.Replace(string.Format(@"{0}", mesh), words[1]);
 					url = url.Substring(0, url.LastIndexOf('/') + 1) + words[1];
 
-					AdvDebug(string.Format("..url {0}", url));
-
+					Debugger.AdvDebug(string.Format("..url {0}", url), _advancedDebug);
 				}
 				else
 				{
-
 					Debug.LogWarning(string.Format("{0}{1}.No mesh found, using default", Constants.logWarning, Constants.logPrefix));
-
 				}
 			}
-
 			return url;
 		}
 
@@ -411,11 +331,11 @@ namespace UbioWeldingLtd
 			_coMOffset = Vector3.zero;
 			WeldingReturn ret = WeldingReturn.Success;
 			string partname = (string)newpart.partInfo.partPrefab.name.Clone();
-			removecClone(ref partname);
+			WeldingHelpers.removeTextRegex(ref partname, "(Clone)");
 
 			Debug.Log(string.Format("{0}{1}{2}",Constants.logPrefix,Constants.logWeldingPart,partname));
-			AdvDebug(string.Format("..part rescaleFactor {0:F}", newpart.rescaleFactor));
-			AdvDebug(string.Format("..part scaleFactor {0:F}", newpart.scaleFactor));
+			Debugger.AdvDebug(string.Format("..part rescaleFactor {0:F}", newpart.rescaleFactor), _advancedDebug);
+			Debugger.AdvDebug(string.Format("..part scaleFactor {0:F}", newpart.scaleFactor), _advancedDebug);
 
 			//--- Find all the config file with the name
 			List<UrlDir.UrlConfig> matchingPartConfigs = new List<UrlDir.UrlConfig>();
@@ -432,7 +352,7 @@ namespace UbioWeldingLtd
 				}
 			}
 
-			AdvDebug(string.Format(".Found {0} config files", matchingPartConfigs.Count));
+			Debugger.AdvDebug(string.Format(".Found {0} config files", matchingPartConfigs.Count), _advancedDebug);
 
 			if (matchingPartConfigs.Count < 1)
 			{
@@ -449,11 +369,11 @@ namespace UbioWeldingLtd
 					if (!cfg.config.HasNode(Constants.weldModelNode))
 					{
 						//Missing Model node
-						AdvDebug(string.Format("..Config {0} has no {1} node",cfg.name,Constants.weldModelNode));
+						Debugger.AdvDebug(string.Format("..Config {0} has no {1} node", cfg.name, Constants.weldModelNode), _advancedDebug);
 
 						ModelInfo info = new ModelInfo();
 						info.url = GetMeshurl(cfg);
-						AdvDebug(string.Format("..{0}{1}", Constants.logModelUrl, info.url));
+						Debugger.AdvDebug(string.Format("..{0}{1}", Constants.logModelUrl, info.url), _advancedDebug);
 
 						Vector3 position = Vector3.zero;
 						setRelativePosition(newpart, ref position);
@@ -465,15 +385,15 @@ namespace UbioWeldingLtd
 
 						info.scale = newpart.transform.GetChild(0).localScale;
 
-						AdvDebug(string.Format("..newpart position {0}", newpart.transform.position.ToString("F3")));
-						AdvDebug(string.Format("..newpart rotation {0}", newpart.transform.rotation.ToString("F3")));
-						AdvDebug(string.Format("..newpart rotation.eulerAngles {0}", newpart.transform.rotation.eulerAngles.ToString("F3")));
-						AdvDebug(string.Format("..newpart rotation.localEulerAngles {0}", newpart.transform.localEulerAngles.ToString("F3")));
-						AdvDebug(string.Format("..newpart localRoot.rotation {0}", newpart.localRoot.transform.rotation.ToString("F3")));
-						AdvDebug(string.Format("..newpart localRoot.rotation.eulerAngles {0}", newpart.localRoot.transform.rotation.eulerAngles.ToString("F3")));
-						AdvDebug(string.Format("..position {0}", info.position.ToString("F3")));
-						AdvDebug(string.Format("..rotation {0}", info.rotation.ToString("F3")));
-						AdvDebug(string.Format("..scale {0}", info.scale.ToString("F3")));
+						Debugger.AdvDebug(string.Format("..newpart position {0}", newpart.transform.position.ToString("F3")), _advancedDebug);
+						Debugger.AdvDebug(string.Format("..newpart rotation {0}", newpart.transform.rotation.ToString("F3")), _advancedDebug);
+						Debugger.AdvDebug(string.Format("..newpart rotation.eulerAngles {0}", newpart.transform.rotation.eulerAngles.ToString("F3")), _advancedDebug);
+						Debugger.AdvDebug(string.Format("..newpart rotation.localEulerAngles {0}", newpart.transform.localEulerAngles.ToString("F3")), _advancedDebug);
+						Debugger.AdvDebug(string.Format("..newpart localRoot.rotation {0}", newpart.localRoot.transform.rotation.ToString("F3")), _advancedDebug);
+						Debugger.AdvDebug(string.Format("..newpart localRoot.rotation.eulerAngles {0}", newpart.localRoot.transform.rotation.eulerAngles.ToString("F3")), _advancedDebug);
+						Debugger.AdvDebug(string.Format("..position {0}", info.position.ToString("F3")), _advancedDebug);
+						Debugger.AdvDebug(string.Format("..rotation {0}", info.rotation.ToString("F3")), _advancedDebug);
+						Debugger.AdvDebug(string.Format("..scale {0}", info.scale.ToString("F3")), _advancedDebug);
 
 						_models.Add(info);
 						_coMOffset += info.position;
@@ -481,7 +401,7 @@ namespace UbioWeldingLtd
 					else //cfg.config.HasNode(Constants.weldModelNode)
 					{
 						ConfigNode[] modelnodes = cfg.config.GetNodes(Constants.weldModelNode);
-						AdvDebug(string.Format("..Config {0} has {1} {2} node", cfg.name, modelnodes.Length, Constants.weldModelNode));
+						Debugger.AdvDebug(string.Format("..Config {0} has {1} {2} node", cfg.name, modelnodes.Length, Constants.weldModelNode), _advancedDebug);
 
 						Vector3 _coMOffsetSum = Vector3.zero;
 						foreach (ConfigNode node in modelnodes)
@@ -496,27 +416,27 @@ namespace UbioWeldingLtd
 							{
 								info.url = GetMeshurl(cfg);
 							}
-							AdvDebug(string.Format("..{0}{1}", Constants.logModelUrl, info.url));
+							Debugger.AdvDebug(string.Format("..{0}{1}", Constants.logModelUrl, info.url), _advancedDebug);
 							Vector3 position = (node.HasValue("position")) ? (ConfigNode.ParseVector3(node.GetValue("position")) * newpart.rescaleFactor) : Vector3.zero;
-							AdvDebug(string.Format("..node.HasValue(\"position\") {0}", node.HasValue("position")));
-							AdvDebug(string.Format("..node position {0}", position.ToString("F3")));
+							Debugger.AdvDebug(string.Format("..node.HasValue(\"position\") {0}", node.HasValue("position")), _advancedDebug);
+							Debugger.AdvDebug(string.Format("..node position {0}", position.ToString("F3")), _advancedDebug);
 							setRelativePosition(newpart, ref position);
 
 							info.position = position;
 
 							Vector3 rotation = (node.HasValue("rotation")) ? ConfigNode.ParseVector3(node.GetValue("rotation")) : Vector3.zero;
-							AdvDebug(string.Format("..node.HasValue(\"rotation\") {0}", node.HasValue("rotation")));
-							AdvDebug(string.Format("..node rotation {0}", rotation.ToString("F3")));
+							Debugger.AdvDebug(string.Format("..node.HasValue(\"rotation\") {0}", node.HasValue("rotation")), _advancedDebug);
+							Debugger.AdvDebug(string.Format("..node rotation {0}", rotation.ToString("F3")), _advancedDebug);
 
 							setRelativeRotation(newpart, ref rotation);
 							info.rotation = rotation;
 
-							AdvDebug(string.Format("..node.HasValue(\"scale\") {0}", node.HasValue("scale")));
+							Debugger.AdvDebug(string.Format("..node.HasValue(\"scale\") {0}", node.HasValue("scale")), _advancedDebug);
 							if (node.HasValue("scale"))
 							{
-								AdvDebug(string.Format("..node scale {0}", node.GetValue("scale")));
+								Debugger.AdvDebug(string.Format("..node scale {0}", node.GetValue("scale")), _advancedDebug);
 							}
-							AdvDebug(string.Format("..Childs count {0}", newpart.transform.childCount));
+							Debugger.AdvDebug(string.Format("..Childs count {0}", newpart.transform.childCount), _advancedDebug);
 
 							info.scale = (node.HasValue("scale")) ?
 											(ConfigNode.ParseVector3(node.GetValue("scale")) * (newpart.rescaleFactor / _rescaleFactor)) :
@@ -524,22 +444,22 @@ namespace UbioWeldingLtd
 														newpart.transform.GetChild(0).localScale.y,
 														newpart.transform.GetChild(0).localScale.z);
 
-							AdvDebug(string.Format("..newpart position {0}", newpart.transform.position.ToString("F3")));
-							AdvDebug(string.Format("..newpart rotation {0}", newpart.transform.rotation.ToString("F3")));
-							AdvDebug(string.Format("..newpart rotation.eulerAngles {0}", newpart.transform.rotation.eulerAngles.ToString("F3")));
-							AdvDebug(string.Format("..newpart rotation.localEulerAngles {0}", newpart.transform.localEulerAngles.ToString("F3")));
-							AdvDebug(string.Format("..newpart localRoot.rotation {0}", newpart.localRoot.transform.rotation.ToString("F3")));
-							AdvDebug(string.Format("..newpart localRoot.rotation.eulerAngles {0}", newpart.localRoot.transform.rotation.eulerAngles.ToString("F3")));
-							AdvDebug(string.Format("..position {0}", info.position.ToString("F3")));
-							AdvDebug(string.Format("..rotation {0}", info.rotation.ToString("F3")));
-							AdvDebug(string.Format("..scale {0}", info.scale.ToString("F3")));
+							Debugger.AdvDebug(string.Format("..newpart position {0}", newpart.transform.position.ToString("F3")), _advancedDebug);
+							Debugger.AdvDebug(string.Format("..newpart rotation {0}", newpart.transform.rotation.ToString("F3")), _advancedDebug);
+							Debugger.AdvDebug(string.Format("..newpart rotation.eulerAngles {0}", newpart.transform.rotation.eulerAngles.ToString("F3")), _advancedDebug);
+							Debugger.AdvDebug(string.Format("..newpart rotation.localEulerAngles {0}", newpart.transform.localEulerAngles.ToString("F3")), _advancedDebug);
+							Debugger.AdvDebug(string.Format("..newpart localRoot.rotation {0}", newpart.localRoot.transform.rotation.ToString("F3")), _advancedDebug);
+							Debugger.AdvDebug(string.Format("..newpart localRoot.rotation.eulerAngles {0}", newpart.localRoot.transform.rotation.eulerAngles.ToString("F3")), _advancedDebug);
+							Debugger.AdvDebug(string.Format("..position {0}", info.position.ToString("F3")), _advancedDebug);
+							Debugger.AdvDebug(string.Format("..rotation {0}", info.rotation.ToString("F3")), _advancedDebug);
+							Debugger.AdvDebug(string.Format("..scale {0}", info.scale.ToString("F3")), _advancedDebug);
 
 							if (node.HasValue("texture"))
 							{
 								foreach (string tex in node.GetValues("texture"))
 								{
 									info.textures.Add(tex);
-									AdvDebug(string.Format("..texture {0}", tex));
+									Debugger.AdvDebug(string.Format("..texture {0}", tex), _advancedDebug);
 								}
 							}
 							if (node.HasValue("parent"))
@@ -554,7 +474,7 @@ namespace UbioWeldingLtd
 
 					//RESSOURCE
 					ConfigNode[] ressources = cfg.config.GetNodes(Constants.weldResNode);
-					AdvDebug(string.Format("..Config {0} has {1} {2} node", cfg.name, ressources.Length, Constants.weldResNode));
+					Debugger.AdvDebug(string.Format("..Config {0} has {1} {2} node", cfg.name, ressources.Length, Constants.weldResNode), _advancedDebug);
 
 					foreach (ConfigNode orires in ressources)
 					{
@@ -571,7 +491,7 @@ namespace UbioWeldingLtd
 								rescfg.SetValue("amount", amount.ToString());
 								rescfg.SetValue("maxAmount", max.ToString());
 								exist = true;
-								AdvDebug(string.Format("..{0}{1} {2}/{3}", Constants.logResMerge, resname, amount, max));
+								Debugger.AdvDebug(string.Format("..{0}{1} {2}/{3}", Constants.logResMerge, resname, amount, max), _advancedDebug);
 								break;
 							}
 						}
@@ -580,18 +500,18 @@ namespace UbioWeldingLtd
 							_resourceslist.Add(res);
 							float amount = float.Parse(res.GetValue("amount"));
 							float max = float.Parse(res.GetValue("maxAmount"));
-							AdvDebug(string.Format("..{0}{1} {2}/{3}", Constants.logResAdd, resname, amount, max));
+							Debugger.AdvDebug(string.Format("..{0}{1} {2}/{3}", Constants.logResAdd, resname, amount, max), _advancedDebug);
 						}
 					} //foreach (ConfigNode res in ressources)
 
 					//MODULE
 					ConfigNode[] originalModules = cfg.config.GetNodes(Constants.weldModuleNode);
-					AdvDebug(string.Format("..Config {0} has {1} {2} node", cfg.name, originalModules.Length, Constants.weldModuleNode));
-					AdvDebug(string.Format(".. running in Alewx Testmode = {0}", runInTestMode));
+					Debugger.AdvDebug(string.Format("..Config {0} has {1} {2} node", cfg.name, originalModules.Length, Constants.weldModuleNode), _advancedDebug);
+					Debugger.AdvDebug(string.Format(".. running in Alewx Testmode = {0}", runInTestMode), _advancedDebug);
 
 					if (runInTestMode)
 					{
-						mergeModulesAlexTest(partname, cfg);
+						mergeModules(partname, cfg, _modulelist, _advancedDebug);
 					}
 					else
 					{
@@ -600,14 +520,14 @@ namespace UbioWeldingLtd
 					//manage the fx group
 					foreach (FXGroup fx in newpart.fxGroups)
 					{
-						AdvDebug(string.Format("..Config {0} has {1} FXEmitters and {2} Sound in {3} FxGroups", cfg.name, fx.fxEmitters.Count, (null != fx.sfx) ? "1" : "0", fx.name));
+						Debugger.AdvDebug(string.Format("..Config {0} has {1} FXEmitters and {2} Sound in {3} FxGroups", cfg.name, fx.fxEmitters.Count, (null != fx.sfx) ? "1" : "0", fx.name), _advancedDebug);
 
 						if (!fx.name.Contains("rcsGroup")) //RCS Fx are not store in the config file
 						{
 							foreach (ParticleEmitter gobj in fx.fxEmitters)
 							{
 								string fxname = gobj.name;
-								removecClone(ref fxname);
+								WeldingHelpers.removeTextRegex(ref fxname,"(Clone)");
 								string fxvalue = cfg.config.GetValue(fxname);
 								string[] allvalue = Regex.Split(fxvalue, ", ");
 								Vector3 pos = new Vector3(float.Parse(allvalue[0]), float.Parse(allvalue[1]), float.Parse(allvalue[2]));
@@ -619,12 +539,12 @@ namespace UbioWeldingLtd
 									fxvalue = string.Format("{0}, {1}", fxvalue, allvalue[i]);
 								}
 								_fxData.AddValue(fxname, fxvalue);
-								AdvDebug(string.Format("..{0}{1}", Constants.logFxAdd, fxname));
+								Debugger.AdvDebug(string.Format("..{0}{1}", Constants.logFxAdd, fxname), _advancedDebug);
 							}
 							if (fx.sfx != null)
 							{
 								_fxData.AddValue(fx.sfx.name, fx.name);
-								AdvDebug(string.Format("..{0}{1}", Constants.logFxAdd, fx.sfx.name));
+								Debugger.AdvDebug(string.Format("..{0}{1}", Constants.logFxAdd, fx.sfx.name), _advancedDebug);
 							}
 						}
 					} //foreach (FXGroup fx in newpart.fxGroups)
@@ -632,7 +552,7 @@ namespace UbioWeldingLtd
 			} //else of if (0 >= matchingPartConfigs.Count)
 
 			//ATTACHNODE
-			AdvDebug(string.Format(".Part {0} has {1} Stack attach node(s)", partname, newpart.attachNodes.Count));
+			Debugger.AdvDebug(string.Format(".Part {0} has {1} Stack attach node(s)", partname, newpart.attachNodes.Count), _advancedDebug);
 
 			foreach (AttachNode partnode in newpart.attachNodes)
 			{
@@ -647,7 +567,7 @@ namespace UbioWeldingLtd
 					setRelativePosition(newpart, ref node.position);
 
 					_attachNodes.Add(node);
-					AdvDebug(string.Format(".{0}{1}", Constants.logNodeAdd, node.id));
+					Debugger.AdvDebug(string.Format(".{0}{1}", Constants.logNodeAdd, node.id), _advancedDebug);
 				}
 			} //foreach (AttachNode node in newpart.attachNodes)
 
@@ -685,7 +605,7 @@ namespace UbioWeldingLtd
 			_mass += partdrymass;
 			_fullmass += partwetmass;
 			_com = ((_com * oldmass) + (_coMOffset * partwetmass)) / _fullmass;
-			AdvDebug(string.Format("AdvDebug(.New Center of Mass: {0}", _com.ToString()));
+			Debugger.AdvDebug(string.Format("AdvDebug(.New Center of Mass: {0}", _com.ToString()), _advancedDebug);
 			//Drag (Add)
 			_minimumDrag = (_minimumDrag + newpart.minimum_drag) * 0.5f;
 			_maximumDrag = (_maximumDrag + newpart.maximum_drag) * 0.5f;
@@ -736,7 +656,7 @@ namespace UbioWeldingLtd
 				//TODO: Find where to find it in game. Would that be pre .15 stuff? http://forum.kerbalspaceprogram.com/threads/7529-Plugin-Posting-Rules-And-Official-Documentation?p=156430&viewfull=1#post156430
 				_module = "Part";
 				//
-				AdvDebug(string.Format("AdvDebug(weldThisPart - newpart.partInfo.category: {0}", newpart.partInfo.category.ToString()));
+				Debugger.AdvDebug(string.Format("AdvDebug(weldThisPart - newpart.partInfo.category: {0}", newpart.partInfo.category.ToString()), _advancedDebug);
 				_category = newpart.partInfo.category;
 				//TODO: better surface node managment
 				_srfAttachNode = newpart.srfAttachNode;
@@ -786,406 +706,6 @@ namespace UbioWeldingLtd
 				}
 			}
 			return null;
-		}
-
-
-		/// <summary>
-		/// merges the modules in a almost generic way.
-		/// </summary>
-		/// <param name="partname"></param>
-		/// <param name="configuration"></param>
-		private void mergeModulesAlexTest(string partname, UrlDir.UrlConfig configuration)
-		{
-			ConfigNode[] originalModules = configuration.config.GetNodes(Constants.weldModuleNode);
-			string newModuleName = "";
-			bool exist = false;
-
-			ConfigNode newModule;
-
-			foreach (ConfigNode originalModule in originalModules)
-			{
-				newModule = originalModule.CreateCopy();
-				newModuleName = newModule.GetValue(newModule.values.DistinctNames()[0]);
-				exist = false;
-
-				foreach (ConfigNode existingNewModule in _modulelist)
-				{
-					if (newModuleName.Equals(existingNewModule.GetValue(existingNewModule.values.DistinctNames()[0])))
-					{
-						if (!WeldingHelpers.isArrayContaing(newModuleName, UbioZurWeldingLtd.instance.config.modulesToMultiply))
-						{
-							AdvDebug(string.Format("| {0} Module already exists!!!", existingNewModule.GetValue(existingNewModule.values.DistinctNames()[0])));
-							if (newModule.values.DistinctNames().Length < 2)
-							{
-								// making shure that the MODULE gets not duplicated in case it has no attributes
-								exist = true;
-								break;
-							}
-							else
-							{
-								string[] breakingAttributes = new string[newModule.values.DistinctNames().Count()];
-								for (int i = 0; i < newModule.values.DistinctNames().Count(); i++)
-								{
-									breakingAttributes[i] = string.Concat(newModuleName, Constants.underline, newModule.values.DistinctNames()[i]);
-								}
-
-								breakingAttributes = WeldingHelpers.getSharedArrayValues(breakingAttributes, UbioZurWeldingLtd.instance.config.breakingModuleAttributes);
-								AdvDebug(string.Format("| BreakingAttributes found = {0} ", breakingAttributes.Length));
-
-								if (breakingAttributes.Length > 0)
-								{
-									foreach (string s in breakingAttributes)
-									{
-										string breakingAttribute = s.Replace(string.Concat(newModuleName, Constants.underline), "");
-										var existingValue = existingNewModule.GetValue(breakingAttribute);
-										var newValue = newModule.GetValue(breakingAttribute);
-										AdvDebug(string.Format("| BreakingAttributes found | current one is {0} | ExistingValue = {1} - NewValue = {2}", breakingAttribute, existingValue, newValue));
-										exist = Equals(existingValue, newValue);
-										if (!exist)
-										{
-											break;
-										}
-									}
-									if (exist)
-									{
-										mergeModuleAttributes(newModuleName, newModule, existingNewModule);
-										mergeSubModules(newModule, existingNewModule);
-										mergeVector2Modules(newModule, existingNewModule);
-										mergeVector4Modules(newModule, existingNewModule);
-										exist = true;
-										break;
-									}
-								}
-								else
-								{
-									mergeModuleAttributes(newModuleName, newModule, existingNewModule);
-									mergeSubModules(newModule, existingNewModule);
-									mergeVector2Modules(newModule, existingNewModule);
-									mergeVector4Modules(newModule, existingNewModule);
-									exist = true;
-									break;
-								}
-							}
-						}
-					}
-					AdvDebug(string.Format("| Module ready to add = {0}", !exist));
-				}//foreach (ConfigNode existingNewModule in _modulelist)
-				if (!exist)
-				{
-					if (!WeldingHelpers.isArrayContaing(newModuleName, UbioZurWeldingLtd.instance.config.modulesToIgnore))
-					{
-						addNewModule(partname, newModuleName, newModule);
-					}
-				} //if (!exist)
-			} //foreach (ConfigNode mod in modules)
-		}
-
-
-		/// <summary>
-		/// merges any module that is of the Vector4 kind
-		/// </summary>
-		/// <param name="newModule"></param>
-		/// <param name="existingNewModule"></param>
-		private void mergeVector4Modules(ConfigNode newModule, ConfigNode existingNewModule)
-		{
-			//Debug.Log(string.Format("{0}| Merging Vector4Modules Start", Constants.logPrefix));
-			foreach (string subModule in UbioZurWeldingLtd.instance.config.vector4CurveModules)
-			{
-				if (newModule.HasNode(subModule))
-				{
-					if (existingNewModule.HasNode(subModule))
-					{
-						string[] curve = newModule.GetNode(subModule).GetValues(Constants.curveKey);
-						string[] cfgcurve = existingNewModule.GetNode(subModule).GetValues(Constants.curveKey);
-						Vector4[] cfgcurvevect = MergeVelCurve(curve, cfgcurve);
-						existingNewModule.GetNode(subModule).RemoveValues(Constants.curveKey);
-						foreach (Vector4 vec in cfgcurvevect)
-						{
-							existingNewModule.GetNode(subModule).AddValue(Constants.curveKey, ConfigNode.WriteVector(vec));
-						}
-					}
-					else
-					{
-						existingNewModule.AddNode(newModule.GetNode(subModule));
-					}
-				}
-			}
-			//Debug.LogError(string.Format("{0}| Merging Vector4Modules End", Constants.logPrefix));
-		}
-
-
-		/// <summary>
-		/// merges the parts of a module that are an vector2
-		/// </summary>
-		/// <param name="newModule"></param>
-		/// <param name="existingNewModule"></param>
-		private void mergeVector2Modules(ConfigNode newModule, ConfigNode existingNewModule)
-		{
-			//Debug.LogError(string.Format("{0}| Merging Vector2Modules Start", Constants.logPrefix));
-			foreach (string subModule in UbioZurWeldingLtd.instance.config.vector2CurveModules)
-			{
-				if (newModule.HasNode(subModule))
-				{
-					if (existingNewModule.HasNode(subModule))
-					{
-						string[] curve = newModule.GetNode(subModule).GetValues(Constants.curveKey);
-						string[] cfgcurve = existingNewModule.GetNode(subModule).GetValues(Constants.curveKey);
-						Vector2[] cfgcurvevect = MergeAtmCurve(curve, cfgcurve);
-						existingNewModule.GetNode(subModule).RemoveValues(Constants.curveKey);
-						foreach (Vector2 vec in cfgcurvevect)
-						{
-							existingNewModule.GetNode(subModule).AddValue(Constants.curveKey, ConfigNode.WriteVector(vec));
-						}
-					}
-					else
-					{
-						existingNewModule.AddNode(newModule.GetNode(subModule));
-					}
-				}
-			}
-			//Debug.LogError(string.Format("{0}| Merging Vector2Modules End", Constants.logPrefix));
-		}
-
-
-
-		/// <summary>
-		/// manages the merging of submodules inside the module
-		/// </summary>
-		/// <param name="newModule"></param>
-		/// <param name="existingNewModule"></param>
-		private void mergeSubModules(ConfigNode newModule, ConfigNode existingNewModule)
-		{
-			//Debug.LogError(string.Format("{0}| Merging SubModules Start", Constants.logPrefix));
-			foreach (string subModule in UbioZurWeldingLtd.instance.config.subModules)
-			{
-				if (newModule.HasNode(subModule) || existingNewModule.HasNode(subModule))
-				{
-					if (existingNewModule.HasNode(subModule) && newModule.HasNode(subModule))
-					{
-						AdvDebug("| SubModules in both Modules found");
-						ConfigNode existingNewSubModule = existingNewModule.GetNode(subModule);
-						ConfigNode newSubModule = newModule.GetNode(subModule);
-						string newSubmoduleName = existingNewSubModule.name;
-						mergeModuleAttributes(newSubmoduleName, newSubModule, existingNewSubModule);
-					}
-					else if (!existingNewModule.HasNode(subModule) && newModule.HasNode(subModule))
-					{
-						AdvDebug("| SubModules in one Modules found");
-						existingNewModule.AddNode(subModule);
-						ConfigNode newExistingSubModule = existingNewModule.GetNode(subModule);
-						ConfigNode newSubModule = newModule.GetNode(subModule);
-						foreach (string valueName in newSubModule.values.DistinctNames())
-						{
-							newExistingSubModule.AddValue(valueName, newSubModule.GetValue(valueName));
-							AdvDebug(string.Format("| {0} = {1}", valueName, newExistingSubModule.GetValue(valueName)));
-						}
-					}
-				}
-			}
-			//Debug.LogError(string.Format("{0}| Merging SubModules End", Constants.logPrefix));
-		}
-
-
-		/// <summary>
-		/// managed the merging of the attributes of a module
-		/// </summary>
-		/// <param name="newModuleName"></param>
-		/// <param name="exist"></param>
-		/// <param name="boolResult"></param>
-		/// <param name="floatResult"></param>
-		/// <param name="newModule"></param>
-		/// <param name="existingNewModule"></param>
-		private void mergeModuleAttributes(string newModuleName, ConfigNode newModule, ConfigNode existingNewModule)
-		{
-			bool boolResult;
-			float floatResult;
-
-			List<string> moduleNames = newModule.values.DistinctNames().ToList<string>();
-			foreach (string name in existingNewModule.values.DistinctNames())
-			{
-				if (!moduleNames.Contains(name))
-				{
-					moduleNames.Add(name);
-				}
-			}
-
-			foreach (string ModuleAttribute in moduleNames)
-			{
-				boolResult = false;
-				floatResult = 0f;
-				if (bool.TryParse(existingNewModule.GetValue(ModuleAttribute), out boolResult) || bool.TryParse(newModule.GetValue(ModuleAttribute), out boolResult))
-				{
-					AdvDebug(string.Format("| {0} - {1} is bool", newModuleName, ModuleAttribute));
-					mergeModuleBoolValues(newModuleName, newModule, existingNewModule, ModuleAttribute);
-				}
-				else
-				{
-					if (float.TryParse(existingNewModule.GetValue(ModuleAttribute), out floatResult) || float.TryParse(newModule.GetValue(ModuleAttribute), out floatResult))
-					{
-						AdvDebug(string.Format("| {0} - {1} is float", newModuleName, ModuleAttribute));
-						mergeModuleFloatValues(newModuleName, newModule, existingNewModule, ModuleAttribute);
-					}
-					else
-					{
-						AdvDebug(string.Format("| {0} - {1} is string", newModuleName, ModuleAttribute));
-						mergeModuleStringValues(newModuleName, newModule, existingNewModule, ModuleAttribute);
-					}
-				}
-#if (DEBUG)
-				//Debug.LogError(string.Format("{0}- Alex Modulemerger - {1} | {2} = {3}", Constants.logPrefix, existingNewModule.GetValue(existingNewModule.values.DistinctNames()[0]), ModuleAttribute, existingNewModule.GetValue(ModuleAttribute)));
-#endif
-			}
-		}
-
-
-		/// <summary>
-		/// handles the correct merging of bool values in the modules
-		/// </summary>
-		/// <param name="newModuleName"></param>
-		/// <param name="newModule"></param>
-		/// <param name="existingNewModule"></param>
-		/// <param name="ModuleAttribute"></param>
-		private void mergeModuleBoolValues(string newModuleName, ConfigNode newModule, ConfigNode existingNewModule, string ModuleAttribute)
-		{
-#if (DEBUG)
-			//Debug.LogWarning(string.Format("{0}| {1} - {2} is bool", Constants.logPrefix, newModuleName, ModuleAttribute));
-#endif
-			if (newModule.HasValue(ModuleAttribute))
-			{
-				if (existingNewModule.HasValue(ModuleAttribute))
-				{
-					existingNewModule.SetValue(ModuleAttribute, (bool.Parse(newModule.GetValue(ModuleAttribute)) || bool.Parse(existingNewModule.GetValue(ModuleAttribute))).ToString());
-				}
-				else
-				{
-					existingNewModule.AddValue(ModuleAttribute, bool.Parse(newModule.GetValue(ModuleAttribute)).ToString());
-				}
-			}
-			AdvDebug(string.Format("| {0} - {1} is merged with value {2}", newModuleName, ModuleAttribute, bool.Parse(existingNewModule.GetValue(ModuleAttribute))));
-		}
-
-
-		/// <summary>
-		/// handles the correct merging of float values in the modules
-		/// </summary>
-		/// <param name="newModuleName"></param>
-		/// <param name="newModule"></param>
-		/// <param name="existingNewModule"></param>
-		/// <param name="ModuleAttribute"></param>
-		private void mergeModuleFloatValues(string newModuleName, ConfigNode newModule, ConfigNode existingNewModule, string ModuleAttribute)
-		{
-#if (DEBUG)
-			//Debug.LogWarning(string.Format("{0}| {1} - {2} is float", Constants.logPrefix, newModuleName, ModuleAttribute));
-#endif
-			//merge float values if they are allowed
-			if (!WeldingHelpers.isArrayContaing(string.Concat(newModuleName, Constants.underline, ModuleAttribute), UbioZurWeldingLtd.instance.config.unchangedModuleAttributes))
-			{
-				if (newModule.HasValue(ModuleAttribute) || existingNewModule.HasValue(ModuleAttribute))
-				{
-					float newValue = float.Parse(newModule.GetValue(ModuleAttribute));
-					AdvDebug(string.Format("| {0} - newValue - {1} = {2}", newModuleName, ModuleAttribute, newValue));
-
-					if (existingNewModule.HasValue(ModuleAttribute) && newModule.HasValue(ModuleAttribute))
-					{
-						float existingValue = float.Parse(existingNewModule.GetValue(ModuleAttribute));
-						AdvDebug(string.Format("| {0} - existingValue - {1} = {2}", newModuleName, ModuleAttribute, existingValue));
-
-						if (WeldingHelpers.isArrayContaing(string.Concat(newModuleName, Constants.underline, ModuleAttribute), UbioZurWeldingLtd.instance.config.maximizedModuleAttributes))
-						{
-							AdvDebug(string.Format("| {0} - {1} - maximized", newModuleName, ModuleAttribute));
-							existingNewModule.SetValue(ModuleAttribute, (existingValue > newValue ? existingValue : newValue).ToString());
-						}
-						else
-						{
-							if (WeldingHelpers.isArrayContaing(string.Concat(newModuleName, Constants.underline, ModuleAttribute), UbioZurWeldingLtd.instance.config.averagedModuleAttributes) && (newValue != 0 && existingValue != 0))
-							{
-								AdvDebug(string.Format("| {0} - {1} - averaged", newModuleName, ModuleAttribute));
-								existingNewModule.SetValue(ModuleAttribute, ((newValue + existingValue) * 0.5f).ToString());
-							}
-							else
-							{
-								AdvDebug(string.Format("| {0} - {1} - added", newModuleName, ModuleAttribute));
-								existingNewModule.SetValue(ModuleAttribute, (newValue + existingValue).ToString());
-							}
-						}
-					}
-					else if (!existingNewModule.HasValue(ModuleAttribute) && newModule.HasValue(ModuleAttribute))
-					{
-						AdvDebug(string.Format("| {0} - setNewValue - {1} = {2}", newModuleName, ModuleAttribute, newValue));
-						existingNewModule.AddValue(ModuleAttribute, newValue.ToString());
-					}
-				}
-			}
-			AdvDebug(string.Format("| {0} - {1} is merged with value {2}", newModuleName, ModuleAttribute, float.Parse(existingNewModule.GetValue(ModuleAttribute))));
-		}
-
-
-		/// <summary>
-		/// handles the correct merging of string values in the modules
-		/// </summary>
-		/// <param name="newModuleName"></param>
-		/// <param name="newModule"></param>
-		/// <param name="existingNewModule"></param>
-		/// <param name="ModuleAttribute"></param>
-		private void mergeModuleStringValues(string newModuleName, ConfigNode newModule, ConfigNode existingNewModule, string ModuleAttribute)
-		{
-#if (DEBUG)
-			//Debug.LogWarning(string.Format("{0}| {1} - {2} is string", Constants.logPrefix, newModuleName, ModuleAttribute));
-#endif
-			if (newModule.HasValue(ModuleAttribute))
-			{
-				if (existingNewModule.HasValue(ModuleAttribute))
-				{
-					existingNewModule.SetValue(ModuleAttribute, newModule.GetValue(ModuleAttribute));
-				}
-				else
-				{
-					existingNewModule.AddValue(ModuleAttribute, newModule.GetValue(ModuleAttribute));
-				}
-			}
-			AdvDebug(string.Format("| {0} - {1} is merged with value {2}", newModuleName, ModuleAttribute, existingNewModule.GetValue(ModuleAttribute)));
-		}
-
-
-		/// <summary>
-		/// handles the correct addition of Modules to the Modulelist of the new Part
-		/// </summary>
-		/// <param name="partname"></param>
-		/// <param name="newModuleName"></param>
-		/// <param name="newModule"></param>
-		private void addNewModule(string partname, string newModuleName, ConfigNode newModule)
-		{
-			switch (newModule.GetValue(newModule.values.DistinctNames()[0]))
-			{
-				case Constants.modStockAnchdec:
-					{
-						//Decoupler: Change node name
-						string decouplename = newModule.GetValue("explosiveNodeID") + partname + _partNumber;
-						newModule.SetValue("explosiveNodeID", decouplename);
-						break;
-					}
-				case Constants.modStockDocking:
-					{
-						//Docking port: Change node name if any TODO: FIX This
-						if (newModule.HasValue("referenceAttachNode"))
-						{
-							string dockname = newModule.GetValue("referenceAttachNode") + partname + _partNumber;
-							newModule.SetValue("referenceAttachNode", dockname);
-						}
-						break;
-					}
-				case Constants.modStockJettison:
-					{
-						//Fairing/Jetisson, change node name
-						string jetissonname = newModule.GetValue("bottomNodeName") + partname + _partNumber;
-						newModule.SetValue("bottomNodeName", jetissonname);
-						break;
-					}
-			}
-			_modulelist.Add(newModule);
-#if (DEBUG)
-			Debug.Log(string.Format("{0}..{1}{2}", Constants.logPrefix, Constants.logModAdd, newModuleName));
-#endif
 		}
 
 
@@ -1738,12 +1258,5 @@ namespace UbioWeldingLtd
 			}
 		}
 
-		private void AdvDebug(string debugText)
-		{
-			if (_advancedDebug)
-			{
-				Debug.Log(string.Format("{0} {1}", Constants.logPrefix, debugText));
-			}
-		}
 	} //class Welder
 }

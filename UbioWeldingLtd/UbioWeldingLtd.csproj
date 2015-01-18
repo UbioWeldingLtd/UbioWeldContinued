@@ -52,7 +52,9 @@
   <ItemGroup>
     <Compile Include="AdvancedGUITextArea.cs" />
     <Compile Include="AdvancedGUITextField.cs" />
+    <Compile Include="Debugger.cs" />
     <Compile Include="EditorLockManager.cs" />
+    <Compile Include="ModuleMerger.cs" />
     <Compile Include="OldWeldingPluginConfig.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="EditorToolbar.cs" />
