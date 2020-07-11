@@ -38,7 +38,7 @@ namespace UbioWeldingLtd
 				Assembly assembly = lAssembly.assembly;
 				System.Version aVersion = assembly.GetName().Version;
 
-				if (assembly.GetName().Name.StartsWith("ModuleManager") &&
+				if (assembly.GetName().Name.Equals("ModuleManager") &&
 						(((_MMAssembly == null) && (aVersion >= Constants.minModuleManagerVersion)) || //first instance of ModuleManager
 						(_MMAssembly.GetName().Version < aVersion)))	//in case was loaded multiple versions of ModuleManager
 				{
